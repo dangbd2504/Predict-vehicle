@@ -1,0 +1,489 @@
+ <!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Dự Đoán Bảo Dưỡng Xe Máy Nâng Cao</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .chat-container {
+            width: 100%;
+            max-width: 900px;
+            height: 85vh;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chat-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+        
+        .voice-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .voice-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .voice-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+        
+        .voice-btn.listening {
+            background: #ff5722;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 87, 34, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0); }
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: #f9f9f9;
+        }
+        
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.4;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .user-message {
+            background: #4CAF50;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .bot-message {
+            background: #e9ecef;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .bot-message pre {
+            background: #dee2e6;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 8px 0;
+            overflow-x: auto;
+            font-size: 0.9rem;
+        }
+        
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #eee;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+        }
+        
+        .chat-input input:focus {
+            border-color: #4CAF50;
+        }
+        
+        .chat-input button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .chat-input button:hover {
+            background: #45a049;
+        }
+        
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            background: #e9ecef;
+            color: #666;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-style: italic;
+        }
+        
+        .info-panel {
+            background: #e8f5e8;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .info-panel h3 {
+            color: #2e7d32;
+            margin-bottom: 8px;
+        }
+        
+        .info-panel ul {
+            padding-left: 20px;
+        }
+        
+        .info-panel li {
+            margin-bottom: 5px;
+        }
+        
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+            background: #f0f0f0;
+        }
+        
+        .mode-btn {
+            padding: 8px 16px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 20px;
+            background: #e0e0e0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .mode-btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .chat-container {
+                height: 90vh;
+                max-width: 100%;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+            
+            .chat-header h1 {
+                font-size: 1.2rem;
+            }
+            
+            .chat-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .voice-controls {
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1><i class="fas fa-robot"></i> Chatbot Dự Đoán Bảo Dưỡng Xe Máy Nâng Cao</h1>
+            <div class="voice-controls">
+                <button id="micBtn" class="voice-btn" title="Nhấn để nói chuyện">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button id="micListenBtn" class="voice-btn" title="Nhấn và giữ để nói">
+                    <i class="fas fa-microphone-alt"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="mode-selector">
+            <button id="textModeBtn" class="mode-btn active">Chat Văn Bản</button>
+            <button id="voiceModeBtn" class="mode-btn">Chat Giọng Nói</button>
+        </div>
+        
+        <div class="info-panel">
+            <h3><i class="fas fa-info-circle"></i> Hướng dẫn sử dụng:</h3>
+            <ul>
+                <li>Chào hỏi chatbot để bắt đầu</li>
+                <li>Cung cấp thông tin xe: tổng km, km/chuyến, số chuyến/ngày, tuổi xe</li>
+                <li>Ví dụ: "Tôi đã chạy 15000 km, trung bình mỗi chuyến 20 km, đi 4 chuyến mỗi ngày, xe đã 12 tháng tuổi"</li>
+                <li>Sử dụng nút micro để chat bằng giọng nói</li>
+            </ul>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot-message">
+                🤖 Xin chào! Tôi là Chatbot dự đoán bảo dưỡng xe máy thông minh.<br><br>
+                Tôi có thể giúp bạn:<br>
+                • Dự đoán thời điểm cần bảo dưỡng xe<br>
+                • Kiểm tra tình trạng xe<br>
+                • Trả lời các câu hỏi về bảo dưỡng xe<br><br>
+                Vui lòng cung cấp các thông tin sau:<br>
+                1. Tổng km đã chạy<br>
+                2. Km trung bình mỗi chuyến<br>
+                3. Số chuyến/ngày<br>
+                4. Tuổi xe (tháng)<br><br>
+                Bạn có thể nói chuyện bằng văn bản hoặc sử dụng nút micro để nói chuyện bằng giọng nói!
+            </div>
+        </div>
+        
+        <div class="typing-indicator" id="typingIndicator">
+            <i class="fas fa-circle-notch fa-spin"></i> Chatbot đang suy nghĩ...
+        </div>
+        
+        <div class="chat-input">
+            <input type="text" id="userInput" placeholder="Nhập tin nhắn của bạn..." autocomplete="off">
+            <button id="sendButton"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const micBtn = document.getElementById('micBtn');
+        const micListenBtn = document.getElementById('micListenBtn');
+        const textModeBtn = document.getElementById('textModeBtn');
+        const voiceModeBtn = document.getElementById('voiceModeBtn');
+        
+        let isListening = false;
+        let recognition;
+        
+        // Khởi tạo Web Speech API nếu hỗ trợ
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'vi-VN';
+            
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                userInput.value = transcript;
+                isListening = false;
+                micBtn.classList.remove('listening');
+            };
+            
+            recognition.onerror = function(event) {
+                console.error('Lỗi nhận diện giọng nói:', event.error);
+                isListening = false;
+                micBtn.classList.remove('listening');
+            };
+        } else {
+            micBtn.disabled = true;
+            micListenBtn.disabled = true;
+            alert('Trình duyệt của bạn không hỗ trợ nhận diện giọng nói. Vui lòng sử dụng chat văn bản.');
+        }
+        
+        // Cuộn xuống tin nhắn mới nhất
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Hiển thị tin nhắn của người dùng
+        function addUserMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user-message';
+            messageDiv.textContent = message;
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        // Hiển thị tin nhắn của bot
+        function addBotMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot-message';
+            
+            // Nếu tin nhắn chứa định dạng đặc biệt (như bảng), xử lý riêng
+            if (message.includes('**')) {
+                // Chuyển đổi **text** thành <strong>text</strong>
+                let formattedMessage = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                formattedMessage = formattedMessage.replace(/\n/g, '<br>');
+                messageDiv.innerHTML = formattedMessage;
+            } else {
+                messageDiv.innerHTML = message.replace(/\n/g, '<br>');
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        // Gửi tin nhắn
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+            
+            // Thêm tin nhắn của người dùng
+            addUserMessage(message);
+            userInput.value = '';
+            
+            // Hiển thị chỉ báo đang gõ
+            typingIndicator.style.display = 'block';
+            scrollToBottom();
+            
+            try {
+                // Gửi yêu cầu đến backend
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await response.json();
+                
+                // Ẩn chỉ báo đang gõ
+                typingIndicator.style.display = 'none';
+                
+                // Thêm tin nhắn của bot
+                addBotMessage(data.response);
+            } catch (error) {
+                // Ẩn chỉ báo đang gõ
+                typingIndicator.style.display = 'none';
+                
+                // Thêm tin nhắn lỗi
+                addBotMessage('❌ Rất tiếc, đã xảy ra lỗi khi xử lý yêu cầu. Vui lòng thử lại sau.');
+            }
+        }
+        
+        // Sự kiện gửi tin nhắn
+        sendButton.addEventListener('click', sendMessage);
+        
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Sự kiện micro đơn (nhấn để nói)
+        micBtn.addEventListener('click', function() {
+            if (!recognition) return;
+            
+            if (isListening) {
+                recognition.stop();
+                isListening = false;
+                micBtn.classList.remove('listening');
+            } else {
+                recognition.start();
+                isListening = true;
+                micBtn.classList.add('listening');
+            }
+        });
+        
+        // Sự kiện micro giữ (nhấn và giữ để nói)
+        micListenBtn.addEventListener('mousedown', function() {
+            if (!recognition) return;
+            
+            recognition.start();
+            micListenBtn.classList.add('listening');
+        });
+        
+        micListenBtn.addEventListener('mouseup', function() {
+            if (!recognition) return;
+            
+            recognition.stop();
+            micListenBtn.classList.remove('listening');
+        });
+        
+        micListenBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            if (!recognition) return;
+            
+            recognition.start();
+            micListenBtn.classList.add('listening');
+        });
+        
+        micListenBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            if (!recognition) return;
+            
+            recognition.stop();
+            micListenBtn.classList.remove('listening');
+        });
+        
+        // Chuyển đổi chế độ
+        textModeBtn.addEventListener('click', function() {
+            textModeBtn.classList.add('active');
+            voiceModeBtn.classList.remove('active');
+        });
+        
+        voiceModeBtn.addEventListener('click', function() {
+            voiceModeBtn.classList.add('active');
+            textModeBtn.classList.remove('active');
+            // Trong phiên bản web, chúng ta chỉ hỗ trợ nhận diện giọng nói
+            // Phát âm sẽ được xử lý ở phía server nếu cần
+        });
+        
+        // Tự động focus vào ô nhập liệu
+        userInput.focus();
+    </script>
+</body>
+</html>
